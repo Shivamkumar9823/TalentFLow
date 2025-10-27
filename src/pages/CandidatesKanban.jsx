@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { useCandidateData, CANDIDATE_STAGES } from '../hooks/useCandidateData.js';
 import { 
   User, Mail, Briefcase, Calendar, Phone, MapPin, 
   FileText, TrendingUp, Clock, CheckCircle, XCircle, 
-  AlertCircle, Target, Sparkles, GripVertical
+  AlertCircle, Target, Sparkles, GripVertical, Filter
 } from 'lucide-react';
 
 // --- Stage Configuration with Colors and Icons ---
@@ -66,8 +66,6 @@ const CandidateCard = ({ candidate, index, provided, snapshot, jobTitleMap }) =>
   const StageIcon = stageConfig.icon;
 
   const jobTitle = jobTitleMap ? jobTitleMap[candidate.jobId] : 'Loading Job...';
-  // console.log('Candidate Job Title:', jobTitle);
-  // console.log('candidate:', candidate);
 
   return (
     <a
@@ -129,14 +127,14 @@ const CandidateCard = ({ candidate, index, provided, snapshot, jobTitleMap }) =>
           </div>
 
           {/* Job Applied For - Highlighted */}
-          {jobTitleMap[candidate.jobId] && (
+          {jobTitle && (
             <div className={`
               flex items-center gap-2 px-2.5 py-1.5 rounded-lg mb-2
               ${stageConfig.lightBg} ${stageConfig.borderColor} border
             `}>
               <Briefcase className={`w-3.5 h-3.5 ${stageConfig.textColor}`} />
               <span className={`text-xs font-medium ${stageConfig.textColor} truncate`}>
-                {jobTitleMap[candidate.jobId]}
+                {jobTitle}
               </span>
             </div>
           )}
@@ -183,7 +181,7 @@ const CandidateCard = ({ candidate, index, provided, snapshot, jobTitleMap }) =>
 };
 
 // --- Kanban Column Component ---
-const KanbanColumn = ({ stage, candidates, droppableProvided, snapshot,jobTitleMap }) => {
+const KanbanColumn = ({ stage, candidates, droppableProvided, snapshot, jobTitleMap }) => {
   const stageConfig = STAGE_CONFIG[stage.value] || STAGE_CONFIG.applied;
   const StageIcon = stageConfig.icon;
 
@@ -263,44 +261,54 @@ const KanbanColumn = ({ stage, candidates, droppableProvided, snapshot,jobTitleM
   );
 };
 
-
-
-
-
-
-
-
-
-
-
-
 // =================================  Main Kanban Component =======================================
 
 function CandidatesKanban() {
-  const { candidatesByStage, loading, error, handleStageTransition, refetch, jobTitleMap,jobList, updateParams, params } = useCandidateData();
+  const { candidatesByStage, loading, error, handleStageTransition, refetch, jobTitleMap, jobList, updateParams, params } = useCandidateData();
+  
+  // Local state for selected job filter
+  const [selectedJobId, setSelectedJobId] = useState('');
 
-  const safeCandidatesByStage = candidatesByStage || {};
-  const totalCandidates = Object.values(safeCandidatesByStage).reduce(
+  const stages = CANDIDATE_STAGES;
+
+  // Filter candidates by selected job
+  const filteredCandidatesByStage = useMemo(() => {
+    if (!candidatesByStage) return {};
+    
+    // If no job is selected, return all candidates
+    if (!selectedJobId || selectedJobId === '') {
+      return candidatesByStage;
+    }
+
+    // Filter candidates for the selected job across all stages
+    const filtered = {};
+    Object.keys(candidatesByStage).forEach(stage => {
+      filtered[stage] = (candidatesByStage[stage] || []).filter(
+        candidate => candidate.jobId === selectedJobId
+      );
+    });
+    
+    return filtered;
+  }, [candidatesByStage, selectedJobId]);
+
+  // Calculate total candidates based on filtered data
+  const totalCandidates = Object.values(filteredCandidatesByStage).reduce(
     (sum, candidates) => sum + (candidates?.length || 0), 
     0
   );
 
-  // console.log('Candidates by Stage:', jobTitleMap);
-  const stages = CANDIDATE_STAGES;
-
-  
-const shouldFilterStages = params.jobId && params.jobId !== '';
-
-const stagesToRender = shouldFilterStages 
-    ? stages.filter(stage => safeCandidatesByStage[stage.value]?.length > 0)
+  // Only show stages that have candidates when filtering
+  const stagesToRender = selectedJobId && selectedJobId !== ''
+    ? stages.filter(stage => (filteredCandidatesByStage[stage.value]?.length || 0) > 0)
     : stages;
 
-
-const handleJobFilterChange = (e) => {
-    // This updates the jobId param in the hook, triggering a data fetch
-    updateParams({ jobId: e.target.value });
+  const handleJobFilterChange = (e) => {
+    const newJobId = e.target.value;
+    setSelectedJobId(newJobId);
+    
+    // Optionally update params if your hook needs it
+    // updateParams({ jobId: newJobId });
   };
-  
 
   const handleDragEnd = async (result) => {
     const { destination, source, draggableId: candidateId } = result;
@@ -319,7 +327,6 @@ const handleJobFilterChange = (e) => {
       refetch();
     }
   };
-
 
   if (loading) {
     return (
@@ -348,6 +355,11 @@ const handleJobFilterChange = (e) => {
     );
   }
 
+  // Get selected job title for display
+  const selectedJobTitle = selectedJobId && jobTitleMap 
+    ? jobTitleMap[selectedJobId] 
+    : null;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-purple-50 p-4 md:p-8">
       <div className="max-w-[1600px] mx-auto">
@@ -361,13 +373,13 @@ const handleJobFilterChange = (e) => {
               </h1>
               <p className="text-gray-600 flex items-center gap-2">
                 <User className="w-4 h-4" />
-                {totalCandidates} Total Candidates in Pipeline
+                {totalCandidates} {selectedJobTitle ? `Candidate${totalCandidates !== 1 ? 's' : ''} for ${selectedJobTitle}` : 'Total Candidates in Pipeline'}
               </p>
             </div>
           </div>
 
           {/* Info Banner */}
-          <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl p-4 text-white shadow-lg">
+          <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl p-4 text-white shadow-lg mb-4">
             <div className="flex items-center gap-3">
               <TrendingUp className="w-6 h-6" />
               <div>
@@ -378,36 +390,50 @@ const handleJobFilterChange = (e) => {
               </div>
             </div>
           </div>
+
+          {/* Job Filter Dropdown */}
+          <div className="bg-white rounded-xl p-4 shadow-md border-2 border-gray-200">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 text-gray-700 font-semibold">
+                <Filter className="w-5 h-5 text-purple-600" />
+                <label htmlFor="job-filter">Filter by Job Role:</label>
+              </div>
+              
+              <select
+                id="job-filter"
+                value={selectedJobId}
+                onChange={handleJobFilterChange}
+                className="flex-1 p-3 border-2 border-gray-200 rounded-lg shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200 focus:outline-none transition-all text-gray-900 font-medium cursor-pointer"
+                disabled={loading || !jobList || jobList.length === 0}
+              >
+                <option value="">All Jobs ({Object.values(candidatesByStage || {}).reduce((sum, c) => sum + (c?.length || 0), 0)} candidates)</option>
+                {jobList && jobList.filter(job => job.id).map(job => {
+                  // Count candidates for this specific job
+                  const jobCandidateCount = Object.values(candidatesByStage || {}).reduce(
+                    (sum, candidates) => sum + (candidates?.filter(c => c.jobId === job.id).length || 0), 
+                    0
+                  );
+                  return (
+                    <option key={job.id} value={job.id}>
+                      {job.title} ({jobCandidateCount} candidate{jobCandidateCount !== 1 ? 's' : ''})
+                    </option>
+                  );
+                })}
+              </select>
+
+              {selectedJobId && (
+                <button
+                  onClick={() => setSelectedJobId('')}
+                  className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors"
+                >
+                  Clear Filter
+                </button>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Kanban Board */}
-
-
-        
-       {/* NEW: Job Title Filter Dropdown */}
-        <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-md mb-4">
-          <label htmlFor="job-filter" className="font-semibold text-gray-700 flex items-center gap-2">
-            <Briefcase className="w-5 h-5 text-gray-500" />
-            Filter by Job Role:
-          </label>
-          <select
-            id="job-filter"
-            value={params.jobId || ''} // Use params.jobId from the hook state
-            onChange={handleJobFilterChange}
-            className="p-2 border border-gray-300 rounded-lg shadow-sm focus:border-purple-500 focus:ring focus:ring-purple-200 focus:ring-opacity-50 transition duration-150"
-            disabled={loading || (jobList && jobList.length <= 1)} // Disable if no jobs or loading
-          >
-            {/* The jobList comes from the hook and includes the "All Jobs" option */}
-            {jobList && jobList.map(job => (
-              <option key={job.id || 'all'} value={job.id}>
-                {job.title}
-              </option>
-            ))}
-          </select>
-        </div>
-
-
-
         <DragDropContext onDragEnd={handleDragEnd}>
           <div className="flex gap-4 overflow-x-auto pb-4">
             {stagesToRender.map(stage => (
@@ -415,16 +441,33 @@ const handleJobFilterChange = (e) => {
                 {(droppableProvided, snapshot) => (
                   <KanbanColumn
                     stage={stage}
-                    candidates={safeCandidatesByStage[stage.value] || []}
+                    candidates={filteredCandidatesByStage[stage.value] || []}
                     droppableProvided={droppableProvided}
                     snapshot={snapshot}
-                    jobTitleMap={jobTitleMap} 
+                    jobTitleMap={jobTitleMap}
                   />
                 )}
               </Droppable>
             ))}
           </div>
         </DragDropContext>
+
+        {/* Empty State when filtering */}
+        {selectedJobId && totalCandidates === 0 && (
+          <div className="mt-8 bg-white rounded-xl p-12 text-center shadow-md border-2 border-gray-200">
+            <User className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">No Candidates Found</h3>
+            <p className="text-gray-600 mb-4">
+              There are no candidates for <strong>{selectedJobTitle}</strong> yet.
+            </p>
+            <button
+              onClick={() => setSelectedJobId('')}
+              className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-xl font-semibold hover:shadow-lg transition-all"
+            >
+              View All Candidates
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -3,7 +3,7 @@ import { useJobData } from '../hooks/useJobData.js';
 import JobFormModal from '../components/JobFormModal.jsx';
 import JobItem from '../components/JobItem.jsx';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import { Search, Plus, Filter, Briefcase, AlertCircle, ChevronLeft, ChevronRight, TrendingUp } from 'lucide-react';
+import { Search, Plus, Filter, Briefcase, AlertCircle, ChevronLeft, ChevronRight, TrendingUp, Users } from 'lucide-react';
 
 // --- Utility Functions ---
 const saveJob = async (jobData, jobId) => {
@@ -95,9 +95,12 @@ function JobsBoard() {
   const handleOpenEdit = (job) => { setEditingJob(job); setIsModalOpen(true); };
   const handleCloseModal = () => { setIsModalOpen(false); setEditingJob(null); setGlobalError(null); };
 
-  const handlePageChange = (newPage) => { updateParams({ page: newPage }); };
-  const handleSearchChange = (e) => { updateParams({ search: e.target.value }); };
-  const handleStatusFilterChange = (e) => { updateParams({ status: e.target.value }); };
+  const handlePageChange = (newPage) => { 
+    console.log('Changing to page:', newPage); // Debug log
+    updateParams({ page: newPage }); 
+  };
+  const handleSearchChange = (e) => { updateParams({ search: e.target.value, page: 1 }); };
+  const handleStatusFilterChange = (e) => { updateParams({ status: e.target.value, page: 1 }); };
 
   // --- Rendering Logic ---
   const isReorderingDisabled = loading || params.search || params.status || meta.totalPages > 1;
@@ -179,7 +182,7 @@ function JobsBoard() {
                   <p className="text-2xl font-bold text-amber-600">{totalApplicants}</p>
                 </div>
                 <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
-                  <AlertCircle className="w-6 h-6 text-amber-600" />
+                  <Users className="w-6 h-6 text-amber-600" />
                 </div>
               </div>
             </div>
@@ -224,12 +227,13 @@ function JobsBoard() {
             </div>
           </div>
 
-          {/* Reorder Info Banner */}
-          {isReorderingDisabled && (
+          {/* Reorder Info Banner - Only show when reordering is disabled */}
+          {isReorderingDisabled && meta.totalPages > 1 && (
             <div className="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
               <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
               <p className="text-sm text-amber-800">
-                <strong>Note:</strong> Reordering is enabled only when showing all jobs on a single page (no filters or pagination applied).
+                <strong>Note:</strong> Drag & drop reordering is disabled when using pagination, search, or filters. 
+                View all jobs on a single page to enable reordering.
               </p>
             </div>
           )}
@@ -293,30 +297,59 @@ function JobsBoard() {
           </Droppable>
         </DragDropContext>
 
-        {/* Pagination Controls */}
+        {/* Pagination Controls - ALWAYS SHOW if there are multiple pages */}
         {meta.totalPages > 1 && (
-          <div className="mt-6 flex items-center justify-between bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-            <button
-              onClick={() => handlePageChange(params.page - 1)}
-              disabled={params.page === 1 || loading}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              Previous
-            </button>
+          <div className="mt-6 bg-white rounded-xl p-4 shadow-lg border-2 border-gray-200">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              {/* Previous Button */}
+              <button
+                onClick={() => handlePageChange(params.page - 1)}
+                disabled={params.page === 1 || loading}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-50 transition-all shadow-sm hover:shadow-md transform hover:scale-105 disabled:transform-none"
+              >
+                <ChevronLeft className="w-5 h-5" />
+                Previous
+              </button>
 
-            <span className="text-sm text-gray-600">
-              Page <strong className="text-gray-900">{meta.page}</strong> of <strong className="text-gray-900">{meta.totalPages}</strong>
-            </span>
+              {/* Page Info */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">Page</span>
+                <span className="px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-600 text-white rounded-lg font-bold shadow-md">
+                  {meta.page}
+                </span>
+                <span className="text-sm text-gray-600">of</span>
+                <span className="px-4 py-2 bg-gray-100 text-gray-900 rounded-lg font-bold">
+                  {meta.totalPages}
+                </span>
+              </div>
 
-            <button
-              onClick={() => handlePageChange(params.page + 1)}
-              disabled={params.page === meta.totalPages || loading}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Next
-              <ChevronRight className="w-4 h-4" />
-            </button>
+              {/* Next Button */}
+              <button
+                onClick={() => handlePageChange(params.page + 1)}
+                disabled={params.page === meta.totalPages || loading}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 text-sm font-semibold text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-gray-50 transition-all shadow-sm hover:shadow-md transform hover:scale-105 disabled:transform-none"
+              >
+                Next
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Page Counter Text */}
+            <div className="mt-3 text-center">
+              <span className="text-xs text-gray-500">
+                Showing {((params.page - 1) * (meta.pageSize || 10)) + 1} - {Math.min(params.page * (meta.pageSize || 10), meta.total)} of {meta.total} jobs
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Debug Info (Remove in production) */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mt-4 p-3 bg-gray-100 rounded-lg text-xs font-mono">
+            <div>Current Page: {params.page}</div>
+            <div>Total Pages: {meta.totalPages}</div>
+            <div>Total Jobs: {meta.total}</div>
+            <div>Jobs on Page: {jobs.length}</div>
           </div>
         )}
 
