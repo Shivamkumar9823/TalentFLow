@@ -4,7 +4,7 @@ import JobFormModal from '../components/JobFormModal.jsx';
 import JobItem from '../components/JobItem.jsx';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Search, Plus, Filter, Briefcase, AlertCircle, ChevronLeft, ChevronRight, TrendingUp, Users } from 'lucide-react';
-
+import { db } from '../db';
 // --- Utility Functions ---
 // src/JobsBoard.jsx (or shared utility - Needs import { db } from '../db';)
 
