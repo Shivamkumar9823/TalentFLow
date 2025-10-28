@@ -1,12 +1,10 @@
-// vercel.json
 
 {
+  "name": "talent-flow",
   "rewrites": [
     { 
-      // Source: Match all incoming paths (except static files)
       "source": "/(.*)", 
       
-      // Destination: Rewrite the path to the root HTML file
       "destination": "/index.html" 
     }
   ]
