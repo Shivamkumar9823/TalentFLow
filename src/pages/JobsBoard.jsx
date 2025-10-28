@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useJobData } from '../hooks/useJobData.js';
 import JobFormModal from '../components/JobFormModal.jsx';
 import JobItem from '../components/JobItem.jsx';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { Search, Plus, Filter, Briefcase, AlertCircle, ChevronLeft, ChevronRight, TrendingUp, Users } from 'lucide-react';
 import { db } from '../db';
+import { useDebounce } from '../hooks/useDebounce.js'; // <-- NEW IMPORT
 // --- Utility Functions ---
-// src/JobsBoard.jsx (or shared utility - Needs import { db } from '../db';)
 
 
 
@@ -51,6 +51,9 @@ const saveJob = async (jobData, jobId) => {
 
 
 
+
+
+
 // --- Main JobsBoard Component ---
 function JobsBoard() {
   const {
@@ -68,6 +71,32 @@ function JobsBoard() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingJob, setEditingJob] = useState(null);
   const [globalError, setGlobalError] = useState(null);
+  const [localSearchTerm, setLocalSearchTerm] = useState(params.search);
+
+
+
+  const triggerSearchUpdate = useCallback((newSearchTerm) => {
+    updateParams({ search: newSearchTerm, page: 1 });
+  }, [updateParams]);
+
+  // 2. Create the debounced handler (400ms delay for performance)
+  const debouncedSearchHandler = useDebounce(triggerSearchUpdate, 400);
+
+
+
+const handleSearchChange = (e) => {
+    const newSearchValue = e.target.value;
+    setLocalSearchTerm(newSearchValue);
+    
+    debouncedSearchHandler(newSearchValue);
+  }; 
+
+  useEffect(() => {
+      setLocalSearchTerm(params.search);
+  }, [params.search]);
+  
+  const handleStatusFilterChange = (e) => { updateParams({ status: e.target.value, page: 1 }); };
+  
 
   // --- Reordering Logic ---
   const handleDragEnd = async (result) => {
@@ -130,8 +159,8 @@ function JobsBoard() {
     console.log('Changing to page:', newPage); // Debug log
     updateParams({ page: newPage }); 
   };
-  const handleSearchChange = (e) => { updateParams({ search: e.target.value, page: 1 }); };
-  const handleStatusFilterChange = (e) => { updateParams({ status: e.target.value, page: 1 }); };
+
+
 
   // --- Rendering Logic ---
   const isReorderingDisabled = loading || params.search || params.status || meta.totalPages > 1;
@@ -235,7 +264,7 @@ function JobsBoard() {
                 <input
                   type="text"
                   placeholder="Search by Title or Tag..."
-                  value={params.search}
+                  value={localSearchTerm}
                   onChange={handleSearchChange}
                   disabled={loading}
                   className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-transparent outline-none transition-all disabled:bg-gray-50 disabled:cursor-not-allowed"
