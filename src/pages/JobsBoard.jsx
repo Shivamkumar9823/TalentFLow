@@ -36,8 +36,20 @@ const saveJob = async (jobData, jobId) => {
                 // For PATCH requests (Archive/Unarchive/Edit)
                 await db.jobs.update(jobId, jobData); 
             } else {
-                // For POST requests (Create) - requires generating the full object
-                // NOTE: This path is often simpler just to return success and rely on refetch.
+                const newJobId = 'job-' + Date.now();
+                const newOrder = await db.jobs.count() + 1; // Simplistic order update
+                
+                const newJob = {
+                    id: newJobId,
+                    ...jobData,
+                    status: 'active',
+                    order: newOrder,
+                    createdAt: Date.now(),
+                    // NOTE: You would need to add slug generation here if necessary
+                };
+                
+                // Insert the new job into the database
+                await db.jobs.add(newJob);
             }
             // Return a mock success object for the component
             return { message: 'Success' }; 
