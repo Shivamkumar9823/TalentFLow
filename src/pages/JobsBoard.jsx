@@ -73,22 +73,27 @@ function JobsBoard() {
       throw err;
     }
   };
+// src/components/JobsBoard.jsx (Inside JobsBoard function)
 
-  const handleArchive = async (jobId, newStatus) => {
-    setGlobalError(null);
-    const action = newStatus === 'archived' ? 'Archive' : 'Unarchive';
+  const handleArchive = async (jobId, newStatus) => {
+    setGlobalError(null);
+    const action = newStatus === 'archived' ? 'Archive' : 'Unarchive';
 
-    if (!window.confirm(`Are you sure you want to ${action.toLowerCase()} this job?`)) {
-      return;
-    }
+    if (!window.confirm(`Are you sure you want to ${action.toLowerCase()} this job?`)) {
+      return;
+    }
 
-    try {
-      await saveJob({ status: newStatus }, jobId);
-      refetch();
-    } catch (err) {
-      setGlobalError(`${action} failed: ${err.message}`);
-    }
-  };
+    try {
+      // FIX: CRITICAL - Call the utility to send the PATCH request to the mock API
+      await saveJob({ status: newStatus }, jobId); 
+      
+      // On successful API response, refetch the data to update the list
+      refetch(); 
+    } catch (err) {
+      // Handle simulated 500 errors or network failures
+      setGlobalError(`${action} failed: ${err.message}`);
+    }
+  };
 
   // --- Modal and Filter Handlers ---
   const handleOpenCreate = () => { setEditingJob(null); setIsModalOpen(true); };
