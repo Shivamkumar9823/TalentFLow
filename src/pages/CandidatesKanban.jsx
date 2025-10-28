@@ -83,7 +83,7 @@ const CandidateCard = ({ candidate, index, provided, snapshot, jobTitleMap }) =>
   };
 
   const jobTitle = getJobTitle();
-  console.log("CANDIDATE JOB TITLE ::::::",jobTitle);
+  // console.log("CANDIDATE JOB TITLE ::::::",jobTitle);
 
   return (
     <a
@@ -324,7 +324,7 @@ function CandidatesKanban() {
     });
   }, [candidatesByStage, jobTitleMap, jobList]);
 
-console.log("JOB LIST :::::::::::",jobList);
+// console.log("JOB LIST :::::::::::",jobList);
 
 
 
@@ -382,7 +382,7 @@ console.log("JOB LIST :::::::::::",jobList);
   const handleJobFilterChange = (e) => {
     const newJobId = e.target.value;
     // console.log("JOB IDDDDDDDDDDDDDD :",newJobId)
-    console.log('🔄 Job filter changed to:', newJobId);
+    // console.log('🔄 Job filter changed to:', newJobId);
     setSelectedJobId(newJobId);
   };
 

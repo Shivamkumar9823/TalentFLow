@@ -1,7 +1,7 @@
 // src/hooks/useJobData.js
 
 import { useState, useEffect, useCallback } from 'react';
-import { db } from '../db'; // <--- CRITICAL MISSING IMPORT
+import { db } from '../db'; 
 
 const reorderJobApi = async (jobId, fromOrder, toOrder) => {
   const url = `/jobs/${jobId}/reorder`;
@@ -112,12 +112,27 @@ useEffect(() => {
 
 
   const updateParams = useCallback((newParams) => {
-    setOptimisticJobs(jobs); 
-    setParams(prev => ({
-      ...prev,
-      ...newParams,
-      page: newParams.search !== undefined || newParams.status !== undefined ? 1 : prev.page,
-    }));
+    const isFilterChange = newParams.search !== undefined || newParams.status !== undefined;
+    
+    setOptimisticJobs(jobs); // Keep this line for rollback safety
+    
+    setParams(prev => {
+        let newPage = prev.page;
+        
+        if (isFilterChange) {
+            // 1. If filter/search changes, force reset page to 1
+            newPage = 1;
+        } else if (newParams.page !== undefined) {
+            // 2. If ONLY the page parameter is passed (e.g., from handlePageChange), use it.
+            newPage = newParams.page;
+        }
+        
+        return {
+            ...prev,
+            ...newParams,
+            page: newPage, // Apply the correct new page number
+        };
+    });
   }, [jobs]);
 
 
