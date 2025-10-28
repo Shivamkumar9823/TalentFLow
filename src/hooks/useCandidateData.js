@@ -145,7 +145,7 @@ export const useCandidateData = (initialParams = {}) => {
 
     useEffect(() => {
         fetchCandidates();
-    }, [fetchCandidates]);
+    }, []);
 
     
     const updateParams = useCallback((newParams) => {
@@ -175,7 +175,7 @@ export const useCandidateData = (initialParams = {}) => {
         }
 
         await fetchCandidates();
-    }, [fetchCandidates]);
+    }, []);
 
 
     return { 
