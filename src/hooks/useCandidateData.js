@@ -148,6 +148,8 @@ export const useCandidateData = (initialParams = {}) => {
         return groupCandidatesByStage(candidates);
     }, [candidates]);
     
+
+
     const handleStageTransition = useCallback(async (candidateId, newStage) => {
         const url = `/candidates/${candidateId}`;
         const response = await fetch(url, {
@@ -162,7 +164,7 @@ export const useCandidateData = (initialParams = {}) => {
         }
 
         await fetchCandidates();
-    }, [fetchCandidates]);
+    }, []);
 
 
     return { 
