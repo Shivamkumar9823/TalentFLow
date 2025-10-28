@@ -66,21 +66,26 @@ export const useCandidateData = (initialParams = {}) => {
         setLoading(true);
         setError(null);
 
+        const isDevelopment = process.env.NODE_ENV === 'development';
+
         try {
-            // 1. Fetch Job Titles and List first (Run only once to populate the filter/map)
-            if (Object.keys(jobData.jobTitleMap).length === 0) {
-                const fetchedJobData = await mapAllJobs();
-                setJobData(fetchedJobData); // Populate jobData state
-            }
-            
-            // 2. Fetch Candidates using ALL active parameters
+        let candidatesData;
+        
+        // 1. Fetch Job Titles and List first (Run only once, regardless of mode)
+        if (Object.keys(jobData.jobTitleMap).length === 0) {
+            const fetchedJobData = await mapAllJobs();
+            setJobData(fetchedJobData);
+        }
+        
+        if (isDevelopment) {
+            // --- MODE 1: DEVELOPMENT (Use Mock API/MSW) ---
             const query = new URLSearchParams({ 
                 stage: params.stage, 
                 search: params.search,
-                jobId: params.jobId // <-- INCLUDE jobId IN API CALL
-            }).toString();
-            
+                jobId: params.jobId 
+            }).toString(); 
             const url = `/candidates?${query}`; 
+            
             const response = await fetch(url);
             
             if (!response.ok) {
@@ -88,9 +93,36 @@ export const useCandidateData = (initialParams = {}) => {
             }
 
             const result = await response.json();
-            setCandidates(result.data);
+            candidatesData = result.data;
 
-        } catch (err) {
+        } else {
+            // --- MODE 2: PRODUCTION/DEPLOYMENT (Direct Dexie Access) ---
+            
+            // 1. Get all candidates directly from Dexie:
+            let filteredCandidates = await db.candidates.toArray();
+            
+            // 2. Apply filtering logic locally (stage, search, jobId)
+            if (params.stage) {
+                filteredCandidates = filteredCandidates.filter(c => c.stage === params.stage);
+            }
+            if (params.jobId) {
+                filteredCandidates = filteredCandidates.filter(c => c.jobId === params.jobId);
+            }
+            if (params.search) {
+                const searchLower = params.search.toLowerCase();
+                filteredCandidates = filteredCandidates.filter(c => 
+                    c.name.toLowerCase().includes(searchLower) || 
+                    c.email.toLowerCase().includes(searchLower)
+                );
+            }
+            
+            candidatesData = filteredCandidates;
+        }
+        
+        // Update state with results
+        setCandidates(candidatesData)
+       }
+        catch (err) {
             console.error("Error fetching candidates:", err);
             setError('Failed to load candidates. Please try again.');
         } finally {

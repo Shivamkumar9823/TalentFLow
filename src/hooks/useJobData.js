@@ -31,37 +31,84 @@ export const useJobData = (initialParams = {}) => {
     sort: initialParams.sort || 'order',
   });
 
-  const fetchJobs = useCallback(async () => {
+
+
+
+const fetchJobs = useCallback(async () => {
     setLoading(true);
     setError(null);
 
-    const query = new URLSearchParams(params).toString();
-    const url = `/jobs?${query}`;
+    const isDevelopment = process.env.NODE_ENV === 'development';
 
     try {
-      const response = await fetch(url);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+        let jobsData;
+        let metaData;
+        
+        if (isDevelopment) {
+            // --- MODE 1: DEVELOPMENT (Use Mock API/MSW) ---
+            // This tests latency, errors, and pagination in a network simulation.
+            const query = new URLSearchParams(params).toString();
+            const url = `/jobs?${query}`;
+            
+            const response = await fetch(url);
+            
+            if (!response.ok) {
+                // If MSW returns 500, throw error to trigger catch block
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
 
-      const result = await response.json();
-      
-      setJobs(result.data);
-      setOptimisticJobs(result.data);
-      setMeta(result.meta);
+            const result = await response.json();
+            jobsData = result.data;
+            metaData = result.meta;
+
+        } else {
+            // --- MODE 2: PRODUCTION/DEPLOYMENT (Direct Dexie Access) ---
+            // In deployed environments, MSW is off. We read directly from the source of truth (IndexedDB).
+            
+            // NOTE: For simplicity in deployment, we read all jobs and apply client-side filtering/pagination here.
+            const allJobs = await db.jobs.toArray(); // Access Dexie directly
+            
+            // Minimal client-side pagination/filter simulation for deployment:
+            let filteredJobs = allJobs;
+            if (params.status) {
+                filteredJobs = filteredJobs.filter(j => j.status === params.status);
+            }
+            if (params.search) {
+                const searchLower = params.search.toLowerCase();
+                filteredJobs = filteredJobs.filter(j => j.title.toLowerCase().includes(searchLower) || j.tags.some(t => t.toLowerCase().includes(searchLower)));
+            }
+
+            const pageSize = params.pageSize || 10;
+            const offset = (params.page - 1) * pageSize;
+            
+            jobsData = filteredJobs.slice(offset, offset + pageSize);
+            metaData = {
+                total: filteredJobs.length,
+                page: params.page,
+                pageSize: pageSize,
+                totalPages: Math.ceil(filteredJobs.length / pageSize),
+            };
+        }
+        
+        // Update state with results from either mode
+        setJobs(jobsData);
+        setOptimisticJobs(jobsData);
+        setMeta(metaData);
 
     } catch (err) {
-      console.error("Error fetching jobs:", err);
-      setError('Failed to load jobs. Please try again.');
+        console.error(`Error fetching jobs in ${isDevelopment ? 'DEV' : 'PROD'} mode:`, err);
+        setError('Failed to load jobs. Please ensure your IndexedDB is populated.');
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
-  }, [params]);
+}, [params]); // params is the only dependency that should trigger a re-fetch
 
-  useEffect(() => {
+// The useEffect block remains correct:
+useEffect(() => {
     fetchJobs();
-  }, [fetchJobs]);
+}, [fetchJobs]);
+
+
 
   const updateParams = useCallback((newParams) => {
     setOptimisticJobs(jobs); 
