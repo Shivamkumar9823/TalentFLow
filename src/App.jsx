@@ -5,6 +5,7 @@ import HomePage from './pages/HomePage.jsx';
 import JobsBoard from './pages/JobsBoard.jsx';
 import CandidatesKanban from './pages/CandidatesKanban.jsx';
 import AssessmentBuilder from './pages/AssessmentBuilder.jsx';
+import CandidateProfile from './pages/CandidateProfile.jsx';
 import './App.css';
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
             <Route path="/jobs" element={<JobsBoard />} /> 
             <Route path="/jobs/:jobId" element={<h2 className="placeholder-text">Job Details View Coming Soon...</h2>} />
             <Route path="/candidates" element={<CandidatesKanban />} /> 
+            <Route path="/candidates/:id" element={<CandidateProfile />} />
             <Route path="/assessments" element={<AssessmentBuilder />} />
           </Routes>
         </main>

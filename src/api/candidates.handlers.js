@@ -125,16 +125,37 @@ export const candidatesHandlers = [
             return HttpResponse.json({ error: 'Internal Server Error' }, { status: 500 });
         }
     }),
+
+    http.get('/candidates/:id', async ({ params }) => {
+        await simulateLatency();
+        try {
+            const { id } = params;
+            const candidate = await db.candidates.get(id); // Access Dexie DB
+            
+            if (!candidate) {
+                return HttpResponse.json({ message: 'Candidate not found' }, { status: 404 });
+            }
+            
+            // NOTE: Add mock appliedAt/phone/etc. fields here if needed for UI,
+            // or ensure they were included during the initial seeding process.
+
+            return HttpResponse.json(candidate, { status: 200 });
+
+        } catch (error) {
+            console.error('API Error: GET /candidates/:id', error);
+            return HttpResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        }
+    }),
     
     // 4. GET /candidates/:id/timeline (Placeholder for Candidate Profile)
-    http.get('/candidates/:id/timeline', async ({ params }) => {
+   http.get('/candidates/:id/timeline', async ({ params }) => {
         await simulateLatency();
         
-        // This handler would query the timeline store for all events related to candidateId
-        // Since we didn't fully implement timeline storage, return mock data
+        // CRITICAL FIX: The response MUST contain an array of objects
         return HttpResponse.json({ 
-            timeline: [
-                { id: 1, type: 'status_change', old: 'applied', new: 'screen', timestamp: Date.now() - 86400000, note: 'Initial review complete.' }
+            timeline: [ // <-- This key MUST match the data structure used in the hook
+                { id: 1, message: 'Application received.', new: 'applied', timestamp: Date.now() - 86400000 * 10 },
+                { id: 2, message: 'Moved to Screen stage.', new: 'screen', timestamp: Date.now() - 86400000 * 8 },
             ]
         }, { status: 200 });
     }),

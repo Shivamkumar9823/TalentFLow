@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 import { GripVertical, Edit2, Archive, ArchiveRestore, Tag, Link2, Sparkles } from 'lucide-react';
 
+
+
+
+
 const JobItem = ({ job, onEdit, onArchive, provided, snapshot }) => {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -13,6 +17,7 @@ const JobItem = ({ job, onEdit, onArchive, provided, snapshot }) => {
     <div
       ref={provided.innerRef}
       {...provided.draggableProps}
+      {...provided.dragHandleProps}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       className={`

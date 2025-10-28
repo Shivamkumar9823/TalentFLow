@@ -1,112 +1,40 @@
-// src/components/CandidatesList.jsx
+// src/components/CandidatesList.jsx (Main Virtualized Component)
+
 import React from 'react';
-// import { FixedSizeList } from 'react-window';
-import { useCandidateData, CANDIDATE_STAGES } from '../hooks/useCandidateData.js';
-// import './CandidatesList.css';
+import { FixedSizeList as List } from 'react-window'; // The main component
+import { useCandidateData } from '../hooks/useCandidateData.js'; 
+import CandidateRow from './CandidateRow.jsx';
 
-// --- Stage Colors Utility ---
-const STAGE_CLASSES = {
-    applied: 'stage-applied',
-    screen: 'stage-screen',
-    tech: 'stage-tech',
-    offer: 'stage-offer',
-    hired: 'stage-hired',
-    rejected: 'stage-rejected',
-};
-
-// --- Row Renderer for Virtualized List ---
-const CandidateRow = ({ index, style, data }) => {
-    const candidate = data.candidates[index];
-
-    // Style is required by react-window to position the item
-    return (
-        <a 
-            href={`/candidates/${candidate.id}`} // Deep link requirement
-            style={style} 
-            className="candidate-row"
-        >
-            <div className="candidate-info">
-                <div className="candidate-name">{candidate.name}</div>
-                <div className="candidate-email">{candidate.email}</div>
-            </div>
-            <div className={`candidate-stage ${STAGE_CLASSES[candidate.stage]}`}>
-                {CANDIDATE_STAGES.find(s => s.value === candidate.stage)?.label || 'N/A'}
-            </div>
-        </a>
-    );
-};
-
-
-// --- Main Candidates List Component ---
 function CandidatesList() {
-    const { candidates, loading, error, params, updateParams } = useCandidateData();
+    const { candidates, loading, error } = useCandidateData(); 
 
-    const handleSearchChange = (e) => {
-        updateParams({ search: e.target.value });
-    };
+    if (loading) return <div>Loading candidates...</div>;
+    if (error) return <div>Error loading list: {error}</div>;
 
-    const handleStageFilterChange = (e) => {
-        updateParams({ stage: e.target.value });
-    };
-
-    if (error) {
-        return <div className="error-message">{error}</div>;
-    }
-
-    // Pass the candidates array and count to the virtualized list
-    const listData = { candidates };
-    const itemCount = candidates.length;
+    // Data passed to the row renderer (must be an object)
+    const itemData = { candidates };
 
     return (
-        <div className="candidates-container">
-            <h1 className="candidates-header">
-                Candidates Management ({itemCount} Visible)
-            </h1>
-
-            {/* Filter/Search Controls */}
-            <div className="controls-container">
-                <input 
-                    type="text" 
-                    placeholder="Search by Name or Email..." 
-                    value={params.search} 
-                    onChange={handleSearchChange}
-                    className="search-input"
-                    disabled={loading}
-                />
-                <select 
-                    value={params.stage} 
-                    onChange={handleStageFilterChange} 
-                    className="select-input"
-                    disabled={loading}
+        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+            <h2>Virtualized Candidate List ({candidates.length} visible)</h2>
+            
+            <div style={{ height: '600px', border: '1px solid #ccc' }}> 
+                {/* The List component handles the virtualization
+                  height: Total height of the window/viewport.
+                  itemCount: Total number of items in the list.
+                  itemSize: Height of a single row in pixels (must be fixed for FixedSizeList).
+                  itemData: The data object passed to the inner CandidateRow component.
+                */}
+                <List
+                    height={600} 
+                    itemCount={candidates.length}
+                    itemSize={60} // Assuming each candidate row is 60px tall
+                    width={'100%'}
+                    itemData={itemData}
                 >
-                    {CANDIDATE_STAGES.map(stage => (
-                        <option key={stage.value} value={stage.value}>
-                            {stage.label}
-                        </option>
-                    ))}
-                </select>
+                    {CandidateRow}
+                </List>
             </div>
-
-            {loading && <div className="loading-message">Loading 1000+ candidates...</div>}
-
-            {/* Virtualized List Wrapper */}
-            {!loading && (
-                <div className="list-wrapper">
-                    {itemCount === 0 ? (
-                        <div className="loading-message">No candidates match the current filters.</div>
-                    ) : (
-                        <List
-                            height={600} // Fixed height for the viewport
-                            itemCount={itemCount}
-                            itemSize={60} // Fixed height for each row
-                            width={'100%'}
-                            itemData={listData}
-                        >
-                            {CandidateRow}
-                        </List>
-                    )}
-                </div>
-            )}
         </div>
     );
 }
