@@ -59,10 +59,6 @@ const STAGE_CONFIG = {
   }
 };
 
-
-
-
-
 // --- Draggable Candidate Card Component ---
 const CandidateCard = ({ candidate, index, provided, snapshot, jobTitleMap }) => {
   const [isHovered, setIsHovered] = useState(false);
@@ -70,22 +66,22 @@ const CandidateCard = ({ candidate, index, provided, snapshot, jobTitleMap }) =>
   const StageIcon = stageConfig.icon;
 
   // Robust job title lookup with multiple fallbacks
-
-  console.log(jobTitleMap)
   const getJobTitle = () => {
-    if (!candidate.jobId) return 'No Job Assigned';
+    if (!candidate.jobId) return '';
     
     // Check if jobTitleMap exists and has the jobId
-    if (jobTitleMap && typeof jobTitleMap === 'object' && jobTitleMap[candidate.jobId]) {
-      return jobTitleMap[candidate.jobId];
+    if (jobTitleMap && typeof jobTitleMap === 'object') {
+      const title = jobTitleMap[candidate.jobId];
+      if (title && typeof title === 'string' && title.trim() !== '') {
+        return title;
+      }
     }
     
-    // Fallback: return job ID as string if title not found
-    // return `Job #${candidate.jobId.slice(0, 8)}`;
+    // If no valid title found, return empty string
+    return '';
   };
 
   const jobTitle = getJobTitle();
-  console.log("CANDIDATE JOB TITLE ::::::",jobTitle);
 
   return (
     <a
@@ -148,7 +144,7 @@ const CandidateCard = ({ candidate, index, provided, snapshot, jobTitleMap }) =>
             </div>
           )}
 
-          {/* Job Applied For - Always show if jobTitle exists */}
+          {/* Job Applied For - Only show if jobTitle exists and is not empty */}
           {jobTitle && (
             <div className={`
               flex items-center gap-2 px-2.5 py-1.5 rounded-lg mb-2
@@ -201,12 +197,6 @@ const CandidateCard = ({ candidate, index, provided, snapshot, jobTitleMap }) =>
     </a>
   );
 };
-
-
-
-
-
-
 
 // --- Kanban Column Component ---
 const KanbanColumn = ({ stage, candidates, droppableProvided, snapshot, jobTitleMap }) => {
@@ -316,17 +306,27 @@ function CandidatesKanban() {
   useEffect(() => {
     console.log('🔍 CandidatesKanban Debug:', {
       candidatesByStageKeys: Object.keys(candidatesByStage),
+      candidatesCount: Object.values(candidatesByStage).reduce((sum, c) => sum + (Array.isArray(c) ? c.length : 0), 0),
       jobTitleMapKeys: Object.keys(jobTitleMap),
+      jobTitleMapValues: Object.entries(jobTitleMap).slice(0, 3),
       jobListLength: jobList?.length,
       hasJobTitleMap: !!jobTitleMap,
       jobTitleMapType: typeof jobTitleMap,
-      firstCandidate: candidatesByStage && Object.values(candidatesByStage)[0]?.[0]
+      firstCandidate: candidatesByStage && Object.values(candidatesByStage)[0]?.[0],
+      selectedJobId,
+      environment: typeof window !== 'undefined' ? 'browser' : 'server'
     });
-  }, [candidatesByStage, jobTitleMap, jobList]);
-
-
-
-
+    
+    // Log first few candidates with their jobIds
+    if (candidatesByStage) {
+      const allCandidates = Object.values(candidatesByStage).flat();
+      console.log('📋 Sample candidates:', allCandidates.slice(0, 3).map(c => ({
+        name: c?.name,
+        jobId: c?.jobId,
+        jobTitle: jobTitleMap?.[c?.jobId]
+      })));
+    }
+  }, [candidatesByStage, jobTitleMap, jobList, selectedJobId]);
 
   // Filter candidates by selected job
   const filteredCandidatesByStage = useMemo(() => {
@@ -336,32 +336,36 @@ function CandidatesKanban() {
     }
     
     // If no job is selected, return all candidates
-    if (!selectedJobId || selectedJobId === '') {
+    if (!selectedJobId || selectedJobId === '' || selectedJobId === 'all') {
+      console.log('📋 Showing all candidates');
       return candidatesByStage;
     }
 
+    console.log('🔍 Filtering candidates for jobId:', selectedJobId);
 
     // Filter candidates for the selected job across all stages
     const filtered = {};
     Object.keys(candidatesByStage).forEach(stage => {
       const stageCandidates = candidatesByStage[stage];
       if (Array.isArray(stageCandidates)) {
-        filtered[stage] = stageCandidates.filter(
-          candidate => candidate && candidate.jobId === selectedJobId
-        );
+        const filteredCandidates = stageCandidates.filter(candidate => {
+          if (!candidate) return false;
+          const matches = candidate.jobId === selectedJobId;
+          if (matches) {
+            console.log(`✅ Candidate ${candidate.name} matches jobId ${selectedJobId}`);
+          }
+          return matches;
+        });
+        filtered[stage] = filteredCandidates;
+        console.log(`Stage ${stage}: ${filteredCandidates.length} candidates`);
       } else {
         filtered[stage] = [];
       }
     });
     
+    console.log('🎯 Filtered result:', filtered);
     return filtered;
   }, [candidatesByStage, selectedJobId]);
-
-
-
-
-
-
 
   // Calculate total candidates based on filtered data
   const totalCandidates = Object.values(filteredCandidatesByStage).reduce(
@@ -370,25 +374,29 @@ function CandidatesKanban() {
   );
 
   // Only show stages that have candidates when filtering
-  const stagesToRender = selectedJobId && selectedJobId !== ''
-    ? stages.filter(stage => {
-        const stageValue = stage?.value;
-        return stageValue && (filteredCandidatesByStage[stageValue]?.length || 0) > 0;
-      })
-    : stages;
-
-
+  const stagesToRender = useMemo(() => {
+    if (!selectedJobId || selectedJobId === '' || selectedJobId === 'all') {
+      return stages;
+    }
+    
+    return stages.filter(stage => {
+      const stageValue = stage?.value;
+      return stageValue && (filteredCandidatesByStage[stageValue]?.length || 0) > 0;
+    });
+  }, [selectedJobId, stages, filteredCandidatesByStage]);
 
   const handleJobFilterChange = (e) => {
     const newJobId = e.target.value;
-    // console.log("JOB IDDDDDDDDDDDDDD :",newJobId)
-    console.log('🔄 Job filter changed to:', newJobId);
+    console.log('🔄 Job filter changed:', {
+      newJobId,
+      type: typeof newJobId,
+      isEmpty: newJobId === '',
+      candidatesByStage: Object.keys(candidatesByStage),
+      firstCandidate: Object.values(candidatesByStage)[0]?.[0]
+    });
     setSelectedJobId(newJobId);
   };
 
-
-
-  
   const handleDragEnd = async (result) => {
     const { destination, source, draggableId: candidateId } = result;
 
@@ -484,16 +492,13 @@ function CandidatesKanban() {
               <select
                 id="job-filter"
                 value={selectedJobId}
-                onChange={(e)=>handleJobFilterChange(e)}
+                onChange={handleJobFilterChange}
                 className="flex-1 p-3 border-2 border-gray-200 rounded-lg shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200 focus:outline-none transition-all text-gray-900 font-medium cursor-pointer"
                 disabled={loading || safeJobList.length === 0}
               >
                 <option value="">
                   All Jobs ({Object.values(candidatesByStage).reduce((sum, c) => sum + (Array.isArray(c) ? c.length : 0), 0)} candidates)
                 </option>
-
-
-
 
                 {safeJobList.map(job => {
                   // Count candidates for this specific job
@@ -504,15 +509,28 @@ function CandidatesKanban() {
                     }, 
                     0
                   );
+                  
+                  // Get job title safely
+                  const displayTitle = (job.title && typeof job.title === 'string' && job.title.trim() !== '')
+                    ? job.title
+                    : `Job ${job.id.substring(0, 8)}`;
+                  
                   return (
                     <option key={job.id} value={job.id}>
-                      {job.title || job.id} ({jobCandidateCount} candidate{jobCandidateCount !== 1 ? 's' : ''})
+                      {displayTitle} ({jobCandidateCount} candidate{jobCandidateCount !== 1 ? 's' : ''})
                     </option>
                   );
-                })} 
+                })}
               </select>
 
-
+              {selectedJobId && (
+                <button
+                  onClick={() => setSelectedJobId('')}
+                  className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors"
+                >
+                  Clear Filter
+                </button>
+              )}
             </div>
           </div>
         </div>
