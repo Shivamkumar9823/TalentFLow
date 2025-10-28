@@ -35,17 +35,27 @@ const groupCandidatesByStage = (candidates) => {
 
 // fetch all jobs to build the job title map and job filter list.
 const mapAllJobs = async () => {
-    const response = await fetch('/jobs?pageSize=1000&status=active'); 
-    if (!response.ok) return { jobTitleMap: {}, jobList: [] };
+   const isDevelopment = process.env.NODE_ENV === 'development';
+    let jobData;
 
-    const result = await response.json();
+    if (isDevelopment) {
+        // DEV MODE: Use fetch (MSW intercepts)
+        const response = await fetch('/jobs?pageSize=1000&status=active'); 
+        if (!response.ok) throw new Error("MSW/Jobs Fetch Failed");
+        jobData = await response.json();
+    } else {
+        // PRODUCTION MODE: Direct Dexie Read
+        const allJobs = await db.jobs.toArray();
+        jobData = { data: allJobs }; // Structure to match MSW response format
+    }
     
-    const jobTitleMap = result.data.reduce((map, job) => {
+    // Process the data regardless of source (MSW or Dexie)
+    const jobTitleMap = jobData.data.reduce((map, job) => {
         map[job.id] = job.title;
         return map;
     }, {});
 
-    const jobList = [{ id: '', title: 'All Jobs' }, ...result.data.map(job => ({ id: job.id, title: job.title }))];
+    const jobList = [{ id: '', title: 'All Jobs' }, ...jobData.data.map(job => ({ id: job.id, title: job.title }))];
     return { jobTitleMap, jobList };
 };
 
@@ -145,7 +155,7 @@ export const useCandidateData = (initialParams = {}) => {
 
     useEffect(() => {
         fetchCandidates();
-    }, []);
+    }, [fetchCandidates]);
 
     
     const updateParams = useCallback((newParams) => {

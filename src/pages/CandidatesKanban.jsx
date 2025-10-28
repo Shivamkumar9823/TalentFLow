@@ -70,8 +70,6 @@ const CandidateCard = ({ candidate, index, provided, snapshot, jobTitleMap }) =>
   const StageIcon = stageConfig.icon;
 
   // Robust job title lookup with multiple fallbacks
-
-  console.log(jobTitleMap)
   const getJobTitle = () => {
     if (!candidate.jobId) return 'No Job Assigned';
     
@@ -83,8 +81,6 @@ const CandidateCard = ({ candidate, index, provided, snapshot, jobTitleMap }) =>
     // Fallback: return job ID as string if title not found
     // return `Job #${candidate.jobId.slice(0, 8)}`;
   };
-
-  console.log(jobTitleMap);
 
   const jobTitle = getJobTitle();
   console.log("CANDIDATE JOB TITLE ::::::",jobTitle);
@@ -291,8 +287,10 @@ const KanbanColumn = ({ stage, candidates, droppableProvided, snapshot, jobTitle
   );
 };
 
-// =================================  Main Kanban Component =======================================
 
+
+
+// =================================  Main Kanban Component =======================================
 function CandidatesKanban() {
   const hookData = useCandidateData();
   
@@ -326,7 +324,7 @@ function CandidatesKanban() {
     });
   }, [candidatesByStage, jobTitleMap, jobList]);
 
-
+console.log("JOB LIST :::::::::::",jobList);
 
 
 
@@ -443,6 +441,7 @@ function CandidatesKanban() {
 
   // Safe job list with validation
   const safeJobList = Array.isArray(jobList) ? jobList.filter(job => job && job.id) : [];
+  console.log("SAFE JOB LIST :::::::::::",safeJobList);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-purple-50 p-4 md:p-8">
@@ -475,6 +474,9 @@ function CandidatesKanban() {
             </div>
           </div>
 
+
+
+
           {/* Job Filter Dropdown */}
           <div className="bg-white rounded-xl p-4 shadow-md border-2 border-gray-200">
             <div className="flex items-center gap-4">
@@ -486,7 +488,7 @@ function CandidatesKanban() {
               <select
                 id="job-filter"
                 value={selectedJobId}
-                onChange={(e)=>handleJobFilterChange(e)}
+                onChange={handleJobFilterChange}
                 className="flex-1 p-3 border-2 border-gray-200 rounded-lg shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200 focus:outline-none transition-all text-gray-900 font-medium cursor-pointer"
                 disabled={loading || safeJobList.length === 0}
               >
