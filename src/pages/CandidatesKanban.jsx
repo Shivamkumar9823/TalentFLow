@@ -59,6 +59,10 @@ const STAGE_CONFIG = {
   }
 };
 
+
+
+
+
 // --- Draggable Candidate Card Component ---
 const CandidateCard = ({ candidate, index, provided, snapshot, jobTitleMap }) => {
   const [isHovered, setIsHovered] = useState(false);
@@ -66,6 +70,8 @@ const CandidateCard = ({ candidate, index, provided, snapshot, jobTitleMap }) =>
   const StageIcon = stageConfig.icon;
 
   // Robust job title lookup with multiple fallbacks
+
+  console.log(jobTitleMap)
   const getJobTitle = () => {
     if (!candidate.jobId) return 'No Job Assigned';
     
@@ -75,10 +81,11 @@ const CandidateCard = ({ candidate, index, provided, snapshot, jobTitleMap }) =>
     }
     
     // Fallback: return job ID as string if title not found
-    return `Job #${candidate.jobId.slice(0, 8)}`;
+    // return `Job #${candidate.jobId.slice(0, 8)}`;
   };
 
   const jobTitle = getJobTitle();
+  console.log("CANDIDATE JOB TITLE ::::::",jobTitle);
 
   return (
     <a
@@ -194,6 +201,12 @@ const CandidateCard = ({ candidate, index, provided, snapshot, jobTitleMap }) =>
     </a>
   );
 };
+
+
+
+
+
+
 
 // --- Kanban Column Component ---
 const KanbanColumn = ({ stage, candidates, droppableProvided, snapshot, jobTitleMap }) => {
@@ -311,6 +324,10 @@ function CandidatesKanban() {
     });
   }, [candidatesByStage, jobTitleMap, jobList]);
 
+
+
+
+
   // Filter candidates by selected job
   const filteredCandidatesByStage = useMemo(() => {
     if (!candidatesByStage || typeof candidatesByStage !== 'object') {
@@ -322,6 +339,7 @@ function CandidatesKanban() {
     if (!selectedJobId || selectedJobId === '') {
       return candidatesByStage;
     }
+
 
     // Filter candidates for the selected job across all stages
     const filtered = {};
@@ -339,6 +357,12 @@ function CandidatesKanban() {
     return filtered;
   }, [candidatesByStage, selectedJobId]);
 
+
+
+
+
+
+
   // Calculate total candidates based on filtered data
   const totalCandidates = Object.values(filteredCandidatesByStage).reduce(
     (sum, candidates) => sum + (Array.isArray(candidates) ? candidates.length : 0), 
@@ -353,12 +377,18 @@ function CandidatesKanban() {
       })
     : stages;
 
+
+
   const handleJobFilterChange = (e) => {
     const newJobId = e.target.value;
+    // console.log("JOB IDDDDDDDDDDDDDD :",newJobId)
     console.log('🔄 Job filter changed to:', newJobId);
     setSelectedJobId(newJobId);
   };
 
+
+
+  
   const handleDragEnd = async (result) => {
     const { destination, source, draggableId: candidateId } = result;
 
@@ -454,13 +484,17 @@ function CandidatesKanban() {
               <select
                 id="job-filter"
                 value={selectedJobId}
-                onChange={handleJobFilterChange}
+                onChange={(e)=>handleJobFilterChange(e)}
                 className="flex-1 p-3 border-2 border-gray-200 rounded-lg shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200 focus:outline-none transition-all text-gray-900 font-medium cursor-pointer"
                 disabled={loading || safeJobList.length === 0}
               >
                 <option value="">
                   All Jobs ({Object.values(candidatesByStage).reduce((sum, c) => sum + (Array.isArray(c) ? c.length : 0), 0)} candidates)
                 </option>
+
+
+
+
                 {safeJobList.map(job => {
                   // Count candidates for this specific job
                   const jobCandidateCount = Object.values(candidatesByStage).reduce(
@@ -475,17 +509,10 @@ function CandidatesKanban() {
                       {job.title || job.id} ({jobCandidateCount} candidate{jobCandidateCount !== 1 ? 's' : ''})
                     </option>
                   );
-                })}
+                })} 
               </select>
 
-              {selectedJobId && (
-                <button
-                  onClick={() => setSelectedJobId('')}
-                  className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors"
-                >
-                  Clear Filter
-                </button>
-              )}
+
             </div>
           </div>
         </div>
