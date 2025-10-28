@@ -489,7 +489,7 @@ console.log("JOB LIST :::::::::::",jobList);
                 id="job-filter"
                 value={selectedJobId}
                 onChange={handleJobFilterChange}
-                className="flex-1 p-3 border-2 border-gray-200 rounded-lg shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200 focus:outline-none transition-all text-gray-900 font-medium cursor-pointer"
+                className=" w-full flex-1 p-3 border-2 border-gray-900 rounded-lg shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200 focus:outline-none transition-all text-gray-900 font-medium cursor-pointer"
                 disabled={loading || safeJobList.length === 0}
               >
                 <option value="">
