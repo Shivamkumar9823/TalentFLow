@@ -63,6 +63,17 @@ export const useCandidateData = (initialParams = {}) => {
         jobId: initialParams.jobId || '', // Job ID filter parameter
     });
 
+    useEffect(() => {
+        const initializeJobData = async () => {
+            // Check if job map needs loading (Prod mode always runs here initially)
+            if (Object.keys(jobData.jobTitleMap).length === 0) {
+                 const fetchedJobData = await mapAllJobs();
+                 setJobData(fetchedJobData);
+            }
+        };
+        initializeJobData();
+    }, []);
+
 
     const fetchCandidates = useCallback(async () => {
         setLoading(true);
@@ -164,7 +175,7 @@ export const useCandidateData = (initialParams = {}) => {
         }
 
         await fetchCandidates();
-    }, []);
+    }, [fetchCandidates]);
 
 
     return { 
