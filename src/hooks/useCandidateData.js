@@ -1,5 +1,7 @@
 // src/hooks/useCandidateData.js
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { db } from '../db'; // <--- CRITICAL MISSING IMPORT
+
 
 // Candidate stage options (Used for both UI and grouping keys)
 export const CANDIDATE_STAGES = [

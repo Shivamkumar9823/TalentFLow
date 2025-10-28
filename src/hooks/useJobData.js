@@ -1,6 +1,7 @@
 // src/hooks/useJobData.js
 
 import { useState, useEffect, useCallback } from 'react';
+import { db } from '../db'; // <--- CRITICAL MISSING IMPORT
 
 const reorderJobApi = async (jobId, fromOrder, toOrder) => {
   const url = `/jobs/${jobId}/reorder`;
