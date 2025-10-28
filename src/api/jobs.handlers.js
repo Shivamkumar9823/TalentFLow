@@ -157,6 +157,28 @@ export const jobsHandlers = [
     }
   }),
 
+  http.get('/jobs/:jobId', async ({ params }) => {
+    await simulateLatency(); 
+
+    try {
+        const { jobId } = params;
+        
+        // Access the IndexedDB (Dexie) directly to get the job by its ID
+        const job = await db.jobs.get(jobId); 
+
+        if (!job) {
+            return HttpResponse.json({ message: 'Job not found' }, { status: 404 });
+        }
+
+        // Return the single job object
+        return HttpResponse.json(job, { status: 200 });
+
+    } catch (error) {
+        console.error('API Error: GET /jobs/:jobId', error);
+        return HttpResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    }
+}),
+
 
   // 4. PATCH /jobs/:id/reorder (Reorder Job - with Rollback Test)
   http.patch('/jobs/:id/reorder', async ({ params, request }) => {

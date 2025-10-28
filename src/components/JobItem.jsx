@@ -76,18 +76,21 @@ const JobItem = ({ job, onEdit, onArchive, provided, snapshot }) => {
           <div className="flex items-start justify-between gap-4 mb-3">
             <div className="flex-1 min-w-0">
               {/* Job Title */}
-              <h3 className={`
-                text-xl font-bold mb-2 transition-all duration-300
-                ${snapshot.isDragging 
-                  ? 'text-amber-700' 
-                  : 'text-gray-900 group-hover:text-amber-600'
-                }
-              `}>
+              <a 
+                  href={`/jobs/${job.id}`} // <--- DYNAMIC ROUTE LINK
+                  className={`
+                  text-xl font-bold mb-2 transition-all duration-300 no-underline block
+                  ${snapshot.isDragging 
+                    ? 'text-amber-700' 
+                    : 'text-gray-900 group-hover:text-amber-600'
+                  }
+              `}
+              >
                 {job.title}
                 {snapshot.isDragging && (
                   <Sparkles className="inline-block w-5 h-5 ml-2 text-amber-500 animate-spin" />
                 )}
-              </h3>
+              </a>
               
               {/* Slug */}
               <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
