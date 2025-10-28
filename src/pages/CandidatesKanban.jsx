@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { useCandidateData, CANDIDATE_STAGES } from '../hooks/useCandidateData.js';
 import { 
@@ -65,7 +65,20 @@ const CandidateCard = ({ candidate, index, provided, snapshot, jobTitleMap }) =>
   const stageConfig = STAGE_CONFIG[candidate.stage] || STAGE_CONFIG.applied;
   const StageIcon = stageConfig.icon;
 
-  const jobTitle = jobTitleMap ? jobTitleMap[candidate.jobId] : 'Loading Job...';
+  // Robust job title lookup with multiple fallbacks
+  const getJobTitle = () => {
+    if (!candidate.jobId) return 'No Job Assigned';
+    
+    // Check if jobTitleMap exists and has the jobId
+    if (jobTitleMap && typeof jobTitleMap === 'object' && jobTitleMap[candidate.jobId]) {
+      return jobTitleMap[candidate.jobId];
+    }
+    
+    // Fallback: return job ID as string if title not found
+    return `Job #${candidate.jobId.slice(0, 8)}`;
+  };
+
+  const jobTitle = getJobTitle();
 
   return (
     <a
@@ -112,7 +125,7 @@ const CandidateCard = ({ candidate, index, provided, snapshot, jobTitleMap }) =>
               font-semibold text-base transition-colors
               ${snapshot.isDragging ? stageConfig.textColor : 'text-gray-900'}
             `}>
-              {candidate.name}
+              {candidate.name || 'Unknown Candidate'}
             </h3>
             <StageIcon className={`
               w-4 h-4 flex-shrink-0 ${stageConfig.textColor}
@@ -121,12 +134,14 @@ const CandidateCard = ({ candidate, index, provided, snapshot, jobTitleMap }) =>
           </div>
 
           {/* Email */}
-          <div className="flex items-center gap-2 text-xs text-gray-600 mb-2">
-            <Mail className="w-3 h-3 text-gray-400" />
-            <span className="truncate">{candidate.email}</span>
-          </div>
+          {candidate.email && (
+            <div className="flex items-center gap-2 text-xs text-gray-600 mb-2">
+              <Mail className="w-3 h-3 text-gray-400" />
+              <span className="truncate">{candidate.email}</span>
+            </div>
+          )}
 
-          {/* Job Applied For - Highlighted */}
+          {/* Job Applied For - Always show if jobTitle exists */}
           {jobTitle && (
             <div className={`
               flex items-center gap-2 px-2.5 py-1.5 rounded-lg mb-2
@@ -264,16 +279,44 @@ const KanbanColumn = ({ stage, candidates, droppableProvided, snapshot, jobTitle
 // =================================  Main Kanban Component =======================================
 
 function CandidatesKanban() {
-  const { candidatesByStage, loading, error, handleStageTransition, refetch, jobTitleMap, jobList, updateParams, params } = useCandidateData();
+  const hookData = useCandidateData();
   
+  // Destructure with safe defaults
+  const {
+    candidatesByStage = {},
+    loading = false,
+    error = null,
+    handleStageTransition = () => {},
+    refetch = () => {},
+    jobTitleMap = {},
+    jobList = [],
+    updateParams = () => {},
+    params = {}
+  } = hookData || {};
+
   // Local state for selected job filter
   const [selectedJobId, setSelectedJobId] = useState('');
 
-  const stages = CANDIDATE_STAGES;
+  const stages = CANDIDATE_STAGES || [];
+
+  // Debug logging for production
+  useEffect(() => {
+    console.log('🔍 CandidatesKanban Debug:', {
+      candidatesByStageKeys: Object.keys(candidatesByStage),
+      jobTitleMapKeys: Object.keys(jobTitleMap),
+      jobListLength: jobList?.length,
+      hasJobTitleMap: !!jobTitleMap,
+      jobTitleMapType: typeof jobTitleMap,
+      firstCandidate: candidatesByStage && Object.values(candidatesByStage)[0]?.[0]
+    });
+  }, [candidatesByStage, jobTitleMap, jobList]);
 
   // Filter candidates by selected job
   const filteredCandidatesByStage = useMemo(() => {
-    if (!candidatesByStage) return {};
+    if (!candidatesByStage || typeof candidatesByStage !== 'object') {
+      console.warn('⚠️ candidatesByStage is invalid:', candidatesByStage);
+      return {};
+    }
     
     // If no job is selected, return all candidates
     if (!selectedJobId || selectedJobId === '') {
@@ -283,9 +326,14 @@ function CandidatesKanban() {
     // Filter candidates for the selected job across all stages
     const filtered = {};
     Object.keys(candidatesByStage).forEach(stage => {
-      filtered[stage] = (candidatesByStage[stage] || []).filter(
-        candidate => candidate.jobId === selectedJobId
-      );
+      const stageCandidates = candidatesByStage[stage];
+      if (Array.isArray(stageCandidates)) {
+        filtered[stage] = stageCandidates.filter(
+          candidate => candidate && candidate.jobId === selectedJobId
+        );
+      } else {
+        filtered[stage] = [];
+      }
     });
     
     return filtered;
@@ -293,21 +341,22 @@ function CandidatesKanban() {
 
   // Calculate total candidates based on filtered data
   const totalCandidates = Object.values(filteredCandidatesByStage).reduce(
-    (sum, candidates) => sum + (candidates?.length || 0), 
+    (sum, candidates) => sum + (Array.isArray(candidates) ? candidates.length : 0), 
     0
   );
 
   // Only show stages that have candidates when filtering
   const stagesToRender = selectedJobId && selectedJobId !== ''
-    ? stages.filter(stage => (filteredCandidatesByStage[stage.value]?.length || 0) > 0)
+    ? stages.filter(stage => {
+        const stageValue = stage?.value;
+        return stageValue && (filteredCandidatesByStage[stageValue]?.length || 0) > 0;
+      })
     : stages;
 
   const handleJobFilterChange = (e) => {
     const newJobId = e.target.value;
+    console.log('🔄 Job filter changed to:', newJobId);
     setSelectedJobId(newJobId);
-    
-    // Optionally update params if your hook needs it
-    // updateParams({ jobId: newJobId });
   };
 
   const handleDragEnd = async (result) => {
@@ -355,10 +404,13 @@ function CandidatesKanban() {
     );
   }
 
-  // Get selected job title for display
-  const selectedJobTitle = selectedJobId && jobTitleMap 
-    ? jobTitleMap[selectedJobId] 
+  // Get selected job title for display with safe fallback
+  const selectedJobTitle = selectedJobId && jobTitleMap && jobTitleMap[selectedJobId]
+    ? jobTitleMap[selectedJobId]
     : null;
+
+  // Safe job list with validation
+  const safeJobList = Array.isArray(jobList) ? jobList.filter(job => job && job.id) : [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-purple-50 p-4 md:p-8">
@@ -404,18 +456,23 @@ function CandidatesKanban() {
                 value={selectedJobId}
                 onChange={handleJobFilterChange}
                 className="flex-1 p-3 border-2 border-gray-200 rounded-lg shadow-sm focus:border-purple-500 focus:ring-2 focus:ring-purple-200 focus:outline-none transition-all text-gray-900 font-medium cursor-pointer"
-                disabled={loading || !jobList || jobList.length === 0}
+                disabled={loading || safeJobList.length === 0}
               >
-                <option value="">All Jobs ({Object.values(candidatesByStage || {}).reduce((sum, c) => sum + (c?.length || 0), 0)} candidates)</option>
-                {jobList && jobList.filter(job => job.id).map(job => {
+                <option value="">
+                  All Jobs ({Object.values(candidatesByStage).reduce((sum, c) => sum + (Array.isArray(c) ? c.length : 0), 0)} candidates)
+                </option>
+                {safeJobList.map(job => {
                   // Count candidates for this specific job
-                  const jobCandidateCount = Object.values(candidatesByStage || {}).reduce(
-                    (sum, candidates) => sum + (candidates?.filter(c => c.jobId === job.id).length || 0), 
+                  const jobCandidateCount = Object.values(candidatesByStage).reduce(
+                    (sum, candidates) => {
+                      if (!Array.isArray(candidates)) return sum;
+                      return sum + candidates.filter(c => c && c.jobId === job.id).length;
+                    }, 
                     0
                   );
                   return (
                     <option key={job.id} value={job.id}>
-                      {job.title} ({jobCandidateCount} candidate{jobCandidateCount !== 1 ? 's' : ''})
+                      {job.title || job.id} ({jobCandidateCount} candidate{jobCandidateCount !== 1 ? 's' : ''})
                     </option>
                   );
                 })}
@@ -458,7 +515,7 @@ function CandidatesKanban() {
             <User className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-900 mb-2">No Candidates Found</h3>
             <p className="text-gray-600 mb-4">
-              There are no candidates for <strong>{selectedJobTitle}</strong> yet.
+              There are no candidates for <strong>{selectedJobTitle || 'this job'}</strong> yet.
             </p>
             <button
               onClick={() => setSelectedJobId('')}
