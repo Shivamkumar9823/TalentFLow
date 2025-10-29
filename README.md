@@ -15,7 +15,8 @@ The platform provides complete management of **Jobs**, **Candidates**, and **Ass
   Create, edit, and manage job postings with Active/Archived status toggles.  
 
 - **Search & Filtering:**  
-  Supports filtering by job title, status, and tags, along with simulated server-side pagination.  
+- **Search & Filtering:**  
+  Supports filtering by job title, status, and tags, with simulated server-side pagination and **debounced search input** for optimized performance.
 
 - **Advanced Reordering (Drag & Drop):**  
   - Jobs can be reordered with drag-and-drop.  
@@ -34,7 +35,7 @@ The platform provides complete management of **Jobs**, **Candidates**, and **Ass
 
 - **List View (Virtualized):**  
   - Displays 1,000+ candidates efficiently using **react-window** virtualization.  
-  - Includes client-side search by **name** or **email**.  
+  - Includes client-side search by **Job Role** or **Job Id**.  
 
 - **Candidate Profile Deep Link:**  
   - Dedicated route: `/candidates/:id`.  
@@ -50,14 +51,10 @@ The platform provides complete management of **Jobs**, **Candidates**, and **Ass
   - Multi Choice
   - Short / Long Text
   - Numeric (with range)
-  - File Upload (stubbed)
 
 - **Live Preview:**  
   See assessment structure rendered in real-time as a fillable form.
 
-- **Advanced Logic:**  
-  - Supports **validation rules** (required fields, numeric ranges).  
-  - Includes **conditional logic** (e.g., “Show Q3 only if Q1 = Yes”).
 
 ---
 
@@ -74,9 +71,6 @@ The platform provides complete management of **Jobs**, **Candidates**, and **Ass
 ---
 
 ## 🧩 Key Implementation Highlights
-
-- **Optimistic UI:**  
-  Reordering jobs uses optimistic updates for smooth UX, with rollback logic tied to simulated error responses.
 
 - **Data Context:**  
   Candidate board performs a **pseudo-join** (lookup) to display related Job Title and Job ID for each candidate card.
@@ -95,7 +89,6 @@ The platform provides complete management of **Jobs**, **Candidates**, and **Ass
 - **react-window**
 - **Lucide React Icons**
 - **Tailwind CSS**
-- **Framer Motion (for subtle animations)**
 
 ---
 
@@ -113,8 +106,7 @@ The platform provides complete management of **Jobs**, **Candidates**, and **Ass
 
 ## 🧑‍💻 Author
 
-**Shivam Kumar**  
-Full Stack Developer | MERN Enthusiast  
+**Shivam Kumar**    
 🔗 [GitHub Repository](https://github.com/Shivamkumar9823/TalentFLow.git)  
 🌐 [Live Demo](https://talent-f-low.vercel.app)
 
