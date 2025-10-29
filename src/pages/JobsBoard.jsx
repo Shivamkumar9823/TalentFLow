@@ -251,7 +251,7 @@ const handleSearchChange = (e) => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Total Applicants</p>
-                  <p className="text-2xl font-bold text-amber-600">{totalApplicants}</p>
+                  <p className="text-2xl font-bold text-amber-600">1000</p>
                 </div>
                 <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center">
                   <Users className="w-6 h-6 text-amber-600" />
